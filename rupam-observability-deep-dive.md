@@ -364,9 +364,10 @@ Here is a look at the high-level architecture of a modern observability backend.
 ### 3.2 Ingestion Layer
 
 The ingestion layer acts kind of like the front door for the data. Its main job is to accept data as quickly as possible without crashing, so no telemetry gets lost during a big traffic spike.
-* **How data arrives:** * **gRPC:** This is usually the preferred protocol for modern pipelines (like OTLP). It uses HTTP/2, allowing multiple streams to be multiplexed over a single TCP connection, which drastically lowers overhead.
-  * **HTTP/REST:** Just standard JSON payloads. It's a bit slower than gRPC because of the parsing overhead, but it is universally supported.
-  * **TCP/UDP:** Typically used by older legacy protocols (like syslog or StatsD). Keep in mind HTTP is built on top of the TCP protocol anyway. UDP is generally just meant for broadcasting fire-and-forget messages.
+* **How data arrives:** 
+    * **gRPC:** This is usually the preferred protocol for modern pipelines (like OTLP). It uses HTTP/2, allowing multiple streams to be multiplexed over a single TCP connection, which drastically lowers overhead.
+    * **HTTP/REST:** Just standard JSON payloads. It's a bit slower than gRPC because of the parsing overhead, but it is universally supported.
+    * **TCP/UDP:** Typically used by older legacy protocols (like syslog or StatsD). Keep in mind HTTP is built on top of the TCP protocol anyway. UDP is generally just meant for broadcasting fire-and-forget messages.
 * **Load Balancing:** Since telemetry data is usually a continuous stream, Layer 4 (TCP) load balancers or specialized Layer 7 (gRPC-aware) proxies (like Envoy) are put in place to distribute the incoming connections evenly across the ingestion gateways.
 * **Message Queues (The Buffer):** Once the data hits the gateway, it usually gets dumped immediately into a distributed log (like Apache Kafka or AWS Kinesis). This decouples the ingestion from the actual processing. If the storage database happens to go down, Kafka will hold the data safely until the database is back up.
 * **Validation and Routing:** The gateway usually does a quick sanity check. Is the payload malformed? Is the API key actually valid? If everything looks good, it routes the data to the correct Kafka topic (like `metrics-topic` or `logs-topic`).
