@@ -516,5 +516,8 @@ sum by (endpoint) (rate(dummy_api_requests_total[5m]))
 #### 2. Storage Analysis
 
 * **Prometheus Data Directory Size:** High cardinality rapidly consumes hard drive space. Because every unique label combination forces the database to create a brand-new time-series file, storage needs multiply instantly instead of growing slowly over time.
+
+![storage](images/storage.png)
+
 * **Understanding Block Structure:** Incoming data sits in fast RAM (Head Block) and is simultaneously backed up to a crash-log file (WAL). Every two hours, this data is bundled into permanent "Blocks" on the disk, which contain a searchable index and the actual compressed numbers.
 * **Compression Ratios:** Prometheus is normally excellent at shrinking numerical data to save space. However, high cardinality ruins this efficiency because the system must maintain a massive text-based index to track all the unique labels, which cannot be easily compressed.
