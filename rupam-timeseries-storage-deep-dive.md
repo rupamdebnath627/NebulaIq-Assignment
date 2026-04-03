@@ -498,7 +498,7 @@ sum by (endpoint) (rate(dummy_api_requests_total[5m]))
 * 100
 ```
 
-![percentage_calculation](images/percentage_calculation.png)
+![joins](images/joins.png)
 
 * **Concept:** This uses two separate aggregated queries and does math between them. It takes the rate of 5xx errors per endpoint, divides it by the total rate of all requests per endpoint, and multiplies by 100 to get a percentage.
 * **Result:** A clean graph showing the real-time Error Rate Percentage for every endpoint.
