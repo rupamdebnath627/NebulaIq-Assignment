@@ -1,47 +1,30 @@
 mod parser;
 
-use parser::{count_logs, filter_logs};
+use parser::{count_logs, filter_logs, parse_line, LogEntry, LogLevel, LogStats};
+
 use clap::{Parser, ValueEnum};
-use tokio::fs;
 use std::fmt;
+use tokio::fs::File;
+use tokio::io::{AsyncBufReadExt, BufReader};
 
 // --- CUSTOM ERROR TYPE ---
 #[derive(Debug)]
 pub enum LogError {
-    IoError(std::io::Error),
+    Io(std::io::Error),
 }
 
-// Implement standard formatting so it can be printed
 impl fmt::Display for LogError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LogError::IoError(err) => write!(f, "Failed to read the file: {}", err),
+            LogError::Io(err) => write!(f, "File Error: {}", err),
         }
     }
 }
 
-// Allow the '?' operator to automatically convert std::io::Error into our LogError
 impl From<std::io::Error> for LogError {
-    fn from(error: std::io::Error) -> Self {
-        LogError::IoError(error)
+    fn from(err: std::io::Error) -> Self {
+        LogError::Io(err)
     }
-}
-
-// --- CLI ARGUMENTS ---
-#[derive(Parser)]
-#[command(name = "Log Parser", about = "An async CLI tool to parse logs")]
-struct Cli {
-    /// The path to the log file
-    #[arg(short, long)]
-    file: String,
-
-    /// Filter by a specific level (e.g., [ERROR])
-    #[arg(short = 'l', long)]
-    filter_level: Option<String>,
-
-    /// The output format (console or json)
-    #[arg(short = 'o', long, value_enum, default_value_t = OutputFormat::Console)]
-    format: OutputFormat,
 }
 
 #[derive(Clone, ValueEnum)]
@@ -50,43 +33,73 @@ enum OutputFormat {
     Json,
 }
 
-// --- ASYNC MAIN ---
+// --- CLI ARGUMENTS (CLAP) ---
+#[derive(Parser)]
+#[command(name = "Log Parser", about = "An async log parser")]
+struct Cli {
+    #[arg(short, long)]
+    file: String,
+
+    #[arg(short = 'l', long)]
+    filter_level: Option<LogLevel>,
+
+    #[arg(short = 'o', long, value_enum, default_value_t = OutputFormat::Console)]
+    format: OutputFormat,
+}
+
+// --- ASYNC MAIN (TOKIO) ---
 #[tokio::main]
 async fn main() -> Result<(), LogError> {
-    // Parse the command line arguments
     let cli = Cli::parse();
 
-    // Read file asynchronously. 
-    let log_content = fs::read_to_string(&cli.file).await?;
+    let file = File::open(&cli.file).await?;
+    let reader = BufReader::new(file);
+    let mut lines = reader.lines();
 
-    // Generate Statistics
-    let stats = count_logs(&log_content);
+    let mut log_entries: Vec<LogEntry> = Vec::new();
 
-    // Output results based on user's chosen format
+    while let Some(line) = lines.next_line().await? {
+        if let Some(entry) = parse_line(line) {
+            log_entries.push(entry);
+        }
+    }
+
+    let stats = count_logs(&log_entries);
+
     match cli.format {
         OutputFormat::Console => {
-            if let Some(level) = cli.filter_level {
-                let filtered_lines = filter_logs(&log_content, &level);
-                println!("--- Filtered Logs ({}) ---", level);
-                for line in filtered_lines {
-                    println!("{}", line);
-                }
-                println!("");
-            }
+            print_stats(&stats);
 
-            // Print stats
-            println!("--- Log Statistics ---");
-            println!("INFO count:  {}", stats.info);
-            println!("WARN count:  {}", stats.warn);
-            println!("ERROR count: {}", stats.error);
-            println!("----------------------");
+            if let Some(target_level) = cli.filter_level {
+                let filtered = filter_logs(&log_entries, &target_level);
+                println!("Found {} {} log(s).", filtered.len(), stringify_level(&target_level));
+                for entry in filtered {
+                    println!("{}", entry.message);
+                }
+            }
         }
         OutputFormat::Json => {
-            // Serialize the struct to a pretty JSON string
-            let json_output = serde_json::to_string_pretty(&stats).expect("Failed to serialize to JSON");
-            println!("{}", json_output);
+            let json_out = serde_json::to_string_pretty(&stats).expect("Failed to serialize");
+            println!("{}", json_out);
         }
     }
 
     Ok(())
+}
+
+// --- HELPER FUNCTIONS ---
+fn print_stats(stats: &LogStats) {
+    println!("\n--- Log Statistics ---");
+    println!("INFO count:    {}", stats.info);
+    println!("WARNING count: {}", stats.warning);
+    println!("ERROR count:   {}", stats.error);
+    println!("----------------------\n");
+}
+
+fn stringify_level(level: &LogLevel) -> &str {
+    match level {
+        LogLevel::Info => "INFO",
+        LogLevel::Warning => "WARNING",
+        LogLevel::Error => "ERROR",
+    }
 }
