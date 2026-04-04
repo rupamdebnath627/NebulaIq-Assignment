@@ -24,7 +24,7 @@ fn main() {
     // Read command line arguments
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
-        println!("Please provide a file path! Example: cargo run logs.txt");
+        println!("Please provide a file path! Example: ./log-parser logs.txt");
         return;
     }
 
