@@ -316,6 +316,9 @@ func buildAggFactDetailsForMetric(input *integrationconfig.MetricDetailPlatformD
 	service := utils.DefaultIfEmptyStr(input.PodGroup, Unknown)
 	podName := utils.DefaultIfEmptyStr(input.PodName, Unknown)
 	nodeIp := utils.DefaultIfEmptyStr(input.NodeIp, Unknown)
+	job := utils.DefaultIfEmptyStr(input.Job, Unknown)
+	kind := utils.DefaultIfEmptyStr(input.Kind, Unknown)
+	condition := utils.DefaultIfEmptyStr(input.Condition, Unknown)
 
 	// Build label pairs from LabelValueList
 	var labelPairs [][2]string
