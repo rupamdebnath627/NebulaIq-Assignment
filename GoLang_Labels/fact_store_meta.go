@@ -435,149 +435,149 @@ func buildAggFactDetailsForMetric(input *integrationconfig.MetricDetailPlatformD
 	// TODO: Add more fan-outs in future (cluster level, global service, etc.)
 
 	// ---------------------------------------------------------
-    // Job, Kind, and Condition Level Facts
-    // (Only generated if a 'job' label exists)
-    // ---------------------------------------------------------
-    if job != Unknown {
+	// Job, Kind, and Condition Level Facts
+	// (Only generated if a 'job' label exists)
+	// ---------------------------------------------------------
+	
+	// Job Level Fact: c|job|ns|t
+	if job != Unknown {
+		jobBasePairs := [][2]string{
+			{"t", tapKind},
+			{"c", cluster},
+			{"ns", namespace},
+			{"job", job},
+		}
+		jobFactName := buildSortedFactNameFromPairs(jobBasePairs)
+		jobFactId := utils.GenerateUUIDV5(jobFactName)
+		aggDetails = append(aggDetails, &factStoreProto.FactDetail{
+			Id:                 jobFactId.String(),
+			FactIdType:         factStoreProto.FactIdType_Job,
+			ElementType:        factStoreProto.ElementType_NodeType,
+			FactName:           jobFactName,
+			FactKey:            extractFactKeyFromName(jobFactName),
+			NormalizedFactName: jobFactName,
+		})
 
-        // 1. Job Level Fact: c|job|ns|t
-        jobBasePairs := [][2]string{
-            {"t", tapKind},
-            {"c", cluster},
-            {"ns", namespace},
-            {"job", job},
-        }
-        jobFactName := buildSortedFactNameFromPairs(jobBasePairs)
-        jobFactId := utils.GenerateUUIDV5(jobFactName)
-        aggDetails = append(aggDetails, &factStoreProto.FactDetail{
-            Id:                 jobFactId.String(),
-            FactIdType:         factStoreProto.FactIdType_Job,
-            ElementType:        factStoreProto.ElementType_NodeType,
-            FactName:           jobFactName,
-            FactKey:            extractFactKeyFromName(jobFactName),
-            NormalizedFactName: jobFactName,
-        })
+		if hasLabels {
+			jobLabelPairs := append(append([][2]string{}, jobBasePairs...), labelPairs...)
+			jobLabelFactName := buildSortedFactNameFromPairs(jobLabelPairs)
+			jobLabelFactId := utils.GenerateUUIDV5(jobLabelFactName)
+			aggDetails = append(aggDetails, &factStoreProto.FactDetail{
+				Id:                 jobLabelFactId.String(),
+				FactIdType:         factStoreProto.FactIdType_Job,
+				ElementType:        factStoreProto.ElementType_NodeType,
+				FactName:           jobLabelFactName,
+				FactKey:            extractFactKeyFromName(jobLabelFactName),
+				NormalizedFactName: jobLabelFactName,
+			})
+		}
 
-        if hasLabels {
-            jobLabelPairs := append(append([][2]string{}, jobBasePairs...), labelPairs...)
-            jobLabelFactName := buildSortedFactNameFromPairs(jobLabelPairs)
-            jobLabelFactId := utils.GenerateUUIDV5(jobLabelFactName)
-            aggDetails = append(aggDetails, &factStoreProto.FactDetail{
-                Id:                 jobLabelFactId.String(),
-                FactIdType:         factStoreProto.FactIdType_Job,
-                ElementType:        factStoreProto.ElementType_NodeType,
-                FactName:           jobLabelFactName,
-                FactKey:            extractFactKeyFromName(jobLabelFactName),
-                NormalizedFactName: jobLabelFactName,
-            })
-        }
+		// Job + Kind Fact: c|job|kind|ns|t
+		if kind != Unknown {
+			jobKindBasePairs := [][2]string{
+				{"t", tapKind},
+				{"c", cluster},
+				{"ns", namespace},
+				{"job", job},
+				{"kind", kind},
+			}
+			jobKindFactName := buildSortedFactNameFromPairs(jobKindBasePairs)
+			jobKindFactId := utils.GenerateUUIDV5(jobKindFactName)
+			aggDetails = append(aggDetails, &factStoreProto.FactDetail{
+				Id:                 jobKindFactId.String(),
+				FactIdType:         factStoreProto.FactIdType_JobKind, // Requires protobuf update
+				ElementType:        factStoreProto.ElementType_NodeType,
+				FactName:           jobKindFactName,
+				FactKey:            extractFactKeyFromName(jobKindFactName),
+				NormalizedFactName: jobKindFactName,
+			})
 
-        // 2. Job + Kind Fact: c|job|kind|ns|t
-        if kind != Unknown {
-            jobKindBasePairs := [][2]string{
-                {"t", tapKind},
-                {"c", cluster},
-                {"ns", namespace},
-                {"job", job},
-                {"kind", kind},
-            }
-            jobKindFactName := buildSortedFactNameFromPairs(jobKindBasePairs)
-            jobKindFactId := utils.GenerateUUIDV5(jobKindFactName)
-            aggDetails = append(aggDetails, &factStoreProto.FactDetail{
-                Id:                 jobKindFactId.String(),
-                FactIdType:         factStoreProto.FactIdType_JobKind, // Requires protobuf update
-                ElementType:        factStoreProto.ElementType_NodeType,
-                FactName:           jobKindFactName,
-                FactKey:            extractFactKeyFromName(jobKindFactName),
-                NormalizedFactName: jobKindFactName,
-            })
+			if hasLabels {
+				jobKindLabelPairs := append(append([][2]string{}, jobKindBasePairs...), labelPairs...)
+				jobKindLabelFactName := buildSortedFactNameFromPairs(jobKindLabelPairs)
+				jobKindLabelFactId := utils.GenerateUUIDV5(jobKindLabelFactName)
+				aggDetails = append(aggDetails, &factStoreProto.FactDetail{
+					Id:                 jobKindLabelFactId.String(),
+					FactIdType:         factStoreProto.FactIdType_JobKind,
+					ElementType:        factStoreProto.ElementType_NodeType,
+					FactName:           jobKindLabelFactName,
+					FactKey:            extractFactKeyFromName(jobKindLabelFactName),
+					NormalizedFactName: jobKindLabelFactName,
+				})
+			}
+		}
 
-            if hasLabels {
-                jobKindLabelPairs := append(append([][2]string{}, jobKindBasePairs...), labelPairs...)
-                jobKindLabelFactName := buildSortedFactNameFromPairs(jobKindLabelPairs)
-                jobKindLabelFactId := utils.GenerateUUIDV5(jobKindLabelFactName)
-                aggDetails = append(aggDetails, &factStoreProto.FactDetail{
-                    Id:                 jobKindLabelFactId.String(),
-                    FactIdType:         factStoreProto.FactIdType_JobKind,
-                    ElementType:        factStoreProto.ElementType_NodeType,
-                    FactName:           jobKindLabelFactName,
-                    FactKey:            extractFactKeyFromName(jobKindLabelFactName),
-                    NormalizedFactName: jobKindLabelFactName,
-                })
-            }
-        }
+		// Job + Condition Fact: c|cond|job|ns|t
+		if condition != Unknown {
+			jobCondBasePairs := [][2]string{
+				{"t", tapKind},
+				{"c", cluster},
+				{"ns", namespace},
+				{"job", job},
+				{"cond", condition},
+			}
+			jobCondFactName := buildSortedFactNameFromPairs(jobCondBasePairs)
+			jobCondFactId := utils.GenerateUUIDV5(jobCondFactName)
+			aggDetails = append(aggDetails, &factStoreProto.FactDetail{
+				Id:                 jobCondFactId.String(),
+				FactIdType:         factStoreProto.FactIdType_JobCondition, // Requires protobuf update
+				ElementType:        factStoreProto.ElementType_NodeType,
+				FactName:           jobCondFactName,
+				FactKey:            extractFactKeyFromName(jobCondFactName),
+				NormalizedFactName: jobCondFactName,
+			})
 
-        // 3. Job + Condition Fact: c|condition|job|ns|t
-        if condition != Unknown {
-            jobCondBasePairs := [][2]string{
-                {"t", tapKind},
-                {"c", cluster},
-                {"ns", namespace},
-                {"job", job},
-                {"condition", condition},
-            }
-            jobCondFactName := buildSortedFactNameFromPairs(jobCondBasePairs)
-            jobCondFactId := utils.GenerateUUIDV5(jobCondFactName)
-            aggDetails = append(aggDetails, &factStoreProto.FactDetail{
-                Id:                 jobCondFactId.String(),
-                FactIdType:         factStoreProto.FactIdType_JobCondition, // Requires protobuf update
-                ElementType:        factStoreProto.ElementType_NodeType,
-                FactName:           jobCondFactName,
-                FactKey:            extractFactKeyFromName(jobCondFactName),
-                NormalizedFactName: jobCondFactName,
-            })
+			if hasLabels {
+				jobCondLabelPairs := append(append([][2]string{}, jobCondBasePairs...), labelPairs...)
+				jobCondLabelFactName := buildSortedFactNameFromPairs(jobCondLabelPairs)
+				jobCondLabelFactId := utils.GenerateUUIDV5(jobCondLabelFactName)
+				aggDetails = append(aggDetails, &factStoreProto.FactDetail{
+					Id:                 jobCondLabelFactId.String(),
+					FactIdType:         factStoreProto.FactIdType_JobCondition,
+					ElementType:        factStoreProto.ElementType_NodeType,
+					FactName:           jobCondLabelFactName,
+					FactKey:            extractFactKeyFromName(jobCondLabelFactName),
+					NormalizedFactName: jobCondLabelFactName,
+				})
+			}
+		}
 
-            if hasLabels {
-                jobCondLabelPairs := append(append([][2]string{}, jobCondBasePairs...), labelPairs...)
-                jobCondLabelFactName := buildSortedFactNameFromPairs(jobCondLabelPairs)
-                jobCondLabelFactId := utils.GenerateUUIDV5(jobCondLabelFactName)
-                aggDetails = append(aggDetails, &factStoreProto.FactDetail{
-                    Id:                 jobCondLabelFactId.String(),
-                    FactIdType:         factStoreProto.FactIdType_JobCondition,
-                    ElementType:        factStoreProto.ElementType_NodeType,
-                    FactName:           jobCondLabelFactName,
-                    FactKey:            extractFactKeyFromName(jobCondLabelFactName),
-                    NormalizedFactName: jobCondLabelFactName,
-                })
-            }
-        }
+		// Job + Kind + Condition Fact: c|cond|job|kind|ns|t
+		if kind != Unknown && condition != Unknown {
+			jobKindCondBasePairs := [][2]string{
+				{"t", tapKind},
+				{"c", cluster},
+				{"ns", namespace},
+				{"job", job},
+				{"kind", kind},
+				{"cond", condition},
+			}
+			jobKindCondFactName := buildSortedFactNameFromPairs(jobKindCondBasePairs)
+			jobKindCondFactId := utils.GenerateUUIDV5(jobKindCondFactName)
+			aggDetails = append(aggDetails, &factStoreProto.FactDetail{
+				Id:                 jobKindCondFactId.String(),
+				FactIdType:         factStoreProto.FactIdType_JobKindCondition, // Requires protobuf update
+				ElementType:        factStoreProto.ElementType_NodeType,
+				FactName:           jobKindCondFactName,
+				FactKey:            extractFactKeyFromName(jobKindCondFactName),
+				NormalizedFactName: jobKindCondFactName,
+			})
 
-        // 4. Job + Kind + Condition Fact: c|condition|job|kind|ns|t
-        if kind != Unknown && condition != Unknown {
-            jobKindCondBasePairs := [][2]string{
-                {"t", tapKind},
-                {"c", cluster},
-                {"ns", namespace},
-                {"job", job},
-                {"kind", kind},
-                {"condition", condition},
-            }
-            jobKindCondFactName := buildSortedFactNameFromPairs(jobKindCondBasePairs)
-            jobKindCondFactId := utils.GenerateUUIDV5(jobKindCondFactName)
-            aggDetails = append(aggDetails, &factStoreProto.FactDetail{
-                Id:                 jobKindCondFactId.String(),
-                FactIdType:         factStoreProto.FactIdType_JobKindCondition, // Requires protobuf update
-                ElementType:        factStoreProto.ElementType_NodeType,
-                FactName:           jobKindCondFactName,
-                FactKey:            extractFactKeyFromName(jobKindCondFactName),
-                NormalizedFactName: jobKindCondFactName,
-            })
-
-            if hasLabels {
-                jobKindCondLabelPairs := append(append([][2]string{}, jobKindCondBasePairs...), labelPairs...)
-                jobKindCondLabelFactName := buildSortedFactNameFromPairs(jobKindCondLabelPairs)
-                jobKindCondLabelFactId := utils.GenerateUUIDV5(jobKindCondLabelFactName)
-                aggDetails = append(aggDetails, &factStoreProto.FactDetail{
-                    Id:                 jobKindCondLabelFactId.String(),
-                    FactIdType:         factStoreProto.FactIdType_JobKindCondition,
-                    ElementType:        factStoreProto.ElementType_NodeType,
-                    FactName:           jobKindCondLabelFactName,
-                    FactKey:            extractFactKeyFromName(jobKindCondLabelFactName),
-                    NormalizedFactName: jobKindCondLabelFactName,
-                })
-            }
-        }
-    }
+			if hasLabels {
+				jobKindCondLabelPairs := append(append([][2]string{}, jobKindCondBasePairs...), labelPairs...)
+				jobKindCondLabelFactName := buildSortedFactNameFromPairs(jobKindCondLabelPairs)
+				jobKindCondLabelFactId := utils.GenerateUUIDV5(jobKindCondLabelFactName)
+				aggDetails = append(aggDetails, &factStoreProto.FactDetail{
+					Id:                 jobKindCondLabelFactId.String(),
+					FactIdType:         factStoreProto.FactIdType_JobKindCondition,
+					ElementType:        factStoreProto.ElementType_NodeType,
+					FactName:           jobKindCondLabelFactName,
+					FactKey:            extractFactKeyFromName(jobKindCondLabelFactName),
+					NormalizedFactName: jobKindCondLabelFactName,
+				})
+			}
+		}
+	}
 
 
 //     // ---------------------------------------------------------
